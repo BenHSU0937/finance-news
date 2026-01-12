@@ -1,429 +1,414 @@
-// 你的 Cloudflare Worker 網址（不要結尾斜線）
+// ⚠️ 這裡一定要是你的 Cloudflare Worker 網址（不要加尾巴 /api）
+// 例："https://square-poetry-154f.xxxxx.workers.dev"
 const API_BASE = "https://square-poetry-154f.benbenben0937267.workers.dev";
 
-// -----------------------------
-// DOM
-// -----------------------------
+// ===== DOM =====
 const qEl = document.getElementById("q");
 const goEl = document.getElementById("go");
+const clearEl = document.getElementById("clear");
 const listEl = document.getElementById("list");
-const sortEl = document.getElementById("sort");
+const msgEl = document.getElementById("msg");
 const loadingEl = document.getElementById("loading");
-const statusPill = document.getElementById("statusPill");
-const toastEl = document.getElementById("toast");
+const resultPanel = document.getElementById("resultPanel");
+const sortEl = document.getElementById("sort");
+const countEl = document.getElementById("count");
+const dedupEl = document.getElementById("dedup");
+const themeBtn = document.getElementById("themeBtn");
+const showFavBtn = document.getElementById("showFav");
 
-const twFocusEl = document.getElementById("twFocus");
-const usFocusEl = document.getElementById("usFocus");
-const twFocusSub = document.getElementById("twFocusSub");
-const usFocusSub = document.getElementById("usFocusSub");
+const focusBox = document.getElementById("focusBox");
+const focusStatus = document.getElementById("focusStatus");
 
-const twSectorsEl = document.getElementById("twSectors");
-const usSectorsEl = document.getElementById("usSectors");
-const twCompaniesEl = document.getElementById("twCompanies");
-const usCompaniesEl = document.getElementById("usCompanies");
+const industryChips = document.getElementById("industryChips");
+const companyChips = document.getElementById("companyChips");
 
-const resultTitleEl = document.getElementById("resultTitle");
-const resultSubEl = document.getElementById("resultSub");
-const toggleFavEl = document.getElementById("toggleFav");
+// ===== 設定 =====
+const FAV_KEY = "finance_news_favs_v1"; // localStorage key
+const THEME_KEY = "finance_news_theme_v1";
 
-// -----------------------------
-// 設定：焦點 / 產業快捷 / 公司
-// 你之後想換字或補公司，改這裡就好
-// -----------------------------
-const TW_FOCUS_QUERY = "台股 大盤 加權指數 焦點";
-const US_FOCUS_QUERY = "S&P 500 Nasdaq Dow Jones stock market focus";
+// 美股大盤焦點：你可以隨時改成你習慣看的關鍵字
+const US_FOCUS_QUERY = "S&P 500 OR Nasdaq OR Dow Jones OR Fed rate OR CPI OR earnings";
 
-const TW_SECTORS = [
-  { label: "科技業", q: "台股 科技 半導體 AI 電子" },
-  { label: "傳產(製造)", q: "台股 製造 傳產 鋼鐵 航運 化工" },
-  { label: "金融業", q: "台股 金融 銀行 壽險 證券" },
-  { label: "生技醫療", q: "台股 生技 醫療 新藥" },
-  { label: "內需/政策", q: "台股 內需 政策 公共建設 觀光 零售" },
+// 產業快捷鍵（你提的分類）
+const US_INDUSTRIES = [
+  { label: "科技業", q: "AI OR semiconductor OR Nvidia OR Apple OR Microsoft OR cloud" },
+  { label: "通訊業", q: "telecom OR 5G OR broadband OR T-Mobile OR Verizon" },
+  { label: "消費業", q: "consumer discretionary OR retail OR Walmart OR Amazon OR Tesla" },
+  { label: "金融業", q: "banks OR JPMorgan OR Goldman OR Fed OR yields" },
+  { label: "醫療保健業", q: "healthcare OR pharma OR biotech OR FDA" },
+  { label: "工業/國防/航太", q: "defense OR aerospace OR Boeing OR Lockheed OR RTX" },
+  { label: "能源/原物料", q: "oil OR energy OR OPEC OR natural gas OR commodities" },
 ];
 
-const US_SECTORS = [
-  { label: "科技", q: "US stocks technology AI semiconductors" },
-  { label: "通訊", q: "US stocks communication services telecom" },
-  { label: "消費", q: "US stocks consumer discretionary retail" },
-  { label: "金融", q: "US stocks financials banks" },
-  { label: "醫療保健", q: "US stocks healthcare pharma biotech" },
-  { label: "工業/國防/航太", q: "US stocks industrial defense aerospace" },
-  { label: "能源/原物料", q: "US stocks energy materials oil gas commodities" },
-];
-
-const TW_COMPANIES = [
-  { label: "台積電", q: "TSMC 台積電" },
-  { label: "聯發科", q: "MediaTek 聯發科" },
-  { label: "鴻海", q: "Foxconn 鴻海" },
-  { label: "台達電", q: "Delta Electronics 台達電" },
-  { label: "中華電", q: "Chunghwa Telecom 中華電信" },
-  { label: "國泰金", q: "Cathay Financial 國泰金" },
-  { label: "富邦金", q: "Fubon Financial 富邦金" },
-  { label: "長榮", q: "Evergreen Marine 長榮 海運" },
-];
-
+// 重要公司（可自己增減）
 const US_COMPANIES = [
-  { label: "AAPL", q: "Apple AAPL" },
-  { label: "MSFT", q: "Microsoft MSFT" },
-  { label: "NVDA", q: "Nvidia NVDA" },
-  { label: "AMZN", q: "Amazon AMZN" },
-  { label: "GOOGL", q: "Google Alphabet GOOGL" },
-  { label: "TSLA", q: "Tesla TSLA" },
-  { label: "JPM", q: "JPMorgan JPM" },
-  { label: "XOM", q: "ExxonMobil XOM" },
-  { label: "LMT", q: "Lockheed Martin LMT" },
-  { label: "BA", q: "Boeing BA" },
-  { label: "JNJ", q: "Johnson & Johnson JNJ" },
+  { label: "AAPL", q: "Apple" },
+  { label: "MSFT", q: "Microsoft" },
+  { label: "NVDA", q: "Nvidia" },
+  { label: "GOOGL", q: "Google OR Alphabet" },
+  { label: "AMZN", q: "Amazon" },
+  { label: "META", q: "Meta" },
+  { label: "TSLA", q: "Tesla" },
+  { label: "JPM", q: "JPMorgan" },
+  { label: "XOM", q: "Exxon" },
+  { label: "LLY", q: "Eli Lilly" },
 ];
 
-// -----------------------------
-// 收藏：localStorage
-// -----------------------------
-const FAV_KEY = "finance_news_favs_v1";
-function loadFavs() {
-  try {
-    const raw = localStorage.getItem(FAV_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-function saveFavs(favs) {
-  localStorage.setItem(FAV_KEY, JSON.stringify(favs));
-}
-let favs = loadFavs();
-let showFavOnly = false;
+// ===== state =====
+let lastArticles = [];
+let lastDedupRemoved = 0;
 
-// -----------------------------
-// 工具
-// -----------------------------
-function setStatus(text) {
-  statusPill.textContent = text;
+// ===== utils =====
+function showMsg(text) {
+  msgEl.textContent = text;
+  msgEl.style.display = text ? "block" : "none";
 }
-function showToast(text) {
-  toastEl.textContent = text;
-  toastEl.style.display = "block";
-  clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => (toastEl.style.display = "none"), 1800);
-}
-
-function toTimeText(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString();
-}
-
-function normalizeTitle(t) {
-  return String(t || "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function isValidDesc(desc) {
-  if (!desc) return false;
-  const s = String(desc).trim();
-  if (!s) return false;
-  if (s === "[Removed]") return false;
-  return true;
-}
-
-function dedupeByTitle(articles) {
-  const seen = new Set();
-  const out = [];
-  for (const a of articles) {
-    const key = normalizeTitle(a.title);
-    if (!key) continue;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(a);
-  }
-  return out;
-}
-
-function sortArticles(articles, mode) {
-  const sign = mode === "old" ? 1 : -1;
-  return [...articles].sort((a, b) => {
-    const ta = new Date(a.publishedAt || 0).getTime() || 0;
-    const tb = new Date(b.publishedAt || 0).getTime() || 0;
-    return (ta - tb) * sign;
-  });
-}
-
 function setLoading(on) {
   loadingEl.style.display = on ? "flex" : "none";
 }
 
-// -----------------------------
-// API
-// -----------------------------
-async function fetchArticles(query, pageSize = 20) {
-  const url = `${API_BASE}/api/articles?q=${encodeURIComponent(query)}&pageSize=${pageSize}`;
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if (!res.ok || data.status === "error") {
-    const msg = data?.message || data?.error || "API error";
-    throw new Error(msg);
-  }
-
-  const items = Array.isArray(data.articles) ? data.articles : [];
-  return items;
+function parseTime(s) {
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : 0;
 }
 
-// -----------------------------
-// UI 渲染
-// -----------------------------
-function articleCard(article, { showStar = true } = {}) {
-  const title = article.title || "(no title)";
-  const url = article.url || "#";
-  const sourceName = article?.source?.name || "Unknown";
-  const published = toTimeText(article.publishedAt);
-
-  const descOk = isValidDesc(article.description);
-  const desc = descOk ? article.description : "";
-
-  const isFav = !!favs[url];
-
-  const card = document.createElement("div");
-  card.className = "card";
-
-  const actions = document.createElement("div");
-  actions.className = "actions";
-
-  if (showStar) {
-    const starBtn = document.createElement("button");
-    starBtn.className = "iconbtn" + (isFav ? " active" : "");
-    starBtn.textContent = isFav ? "已收藏" : "收藏";
-    starBtn.onclick = () => {
-      if (!url || url === "#") {
-        showToast("這則新聞缺少 URL，無法收藏");
-        return;
-      }
-      if (favs[url]) {
-        delete favs[url];
-        saveFavs(favs);
-        starBtn.className = "iconbtn";
-        starBtn.textContent = "收藏";
-        showToast("已取消收藏");
-      } else {
-        favs[url] = {
-          title,
-          url,
-          sourceName,
-          publishedAt: article.publishedAt || "",
-          description: descOk ? desc : "",
-        };
-        saveFavs(favs);
-        starBtn.className = "iconbtn active";
-        starBtn.textContent = "已收藏";
-        showToast("已加入收藏");
-      }
-    };
-    actions.appendChild(starBtn);
-  }
-
-  card.appendChild(actions);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noreferrer";
-  a.textContent = title;
-  a.style.fontSize = "18px";
-  a.style.display = "inline-block";
-  a.style.marginRight = "64px";
-  card.appendChild(a);
-
-  const meta = document.createElement("div");
-  meta.className = "meta";
-  meta.textContent = `${sourceName} · ${published}`;
-  card.appendChild(meta);
-
-  if (descOk) {
-    const d = document.createElement("div");
-    d.className = "desc";
-    d.textContent = desc;
-    card.appendChild(d);
-  }
-
-  return card;
+function sortArticles(arr, mode) {
+  const copy = [...arr];
+  copy.sort((a, b) => {
+    const ta = parseTime(a.publishedAt);
+    const tb = parseTime(b.publishedAt);
+    return mode === "old" ? ta - tb : tb - ta;
+  });
+  return copy;
 }
 
-function renderList(articles, { title, subtitle } = {}) {
+function dedupeByTitle(arr) {
+  const seen = new Set();
+  const out = [];
+  let removed = 0;
+
+  for (const a of arr) {
+    const title = (a.title || "").trim().toLowerCase();
+    if (!title) continue;
+    if (seen.has(title)) {
+      removed++;
+      continue;
+    }
+    seen.add(title);
+    out.push(a);
+  }
+  lastDedupRemoved = removed;
+  return out;
+}
+
+function fmtMeta(a) {
+  const src = a?.source?.name || "Unknown";
+  const t = a.publishedAt ? new Date(a.publishedAt).toLocaleString() : "";
+  return `${src}${t ? " · " + t : ""}`;
+}
+
+// ===== favorites =====
+function loadFavs() {
+  try {
+    return JSON.parse(localStorage.getItem(FAV_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+function saveFavs(list) {
+  localStorage.setItem(FAV_KEY, JSON.stringify(list));
+}
+function isFav(url) {
+  const favs = loadFavs();
+  return favs.includes(url);
+}
+function toggleFav(url) {
+  const favs = loadFavs();
+  const idx = favs.indexOf(url);
+  if (idx >= 0) favs.splice(idx, 1);
+  else favs.unshift(url);
+  saveFavs(favs);
+}
+
+// ===== render =====
+function renderList(articles) {
   listEl.innerHTML = "";
-  if (title) resultTitleEl.textContent = title;
-  resultSubEl.textContent = subtitle || "";
+
+  countEl.textContent = `${articles.length} 則`;
+  dedupEl.textContent = `去重：${lastDedupRemoved}`;
 
   if (!articles.length) {
-    const empty = document.createElement("div");
-    empty.className = "sub";
-    empty.textContent = "沒有找到結果。";
-    listEl.appendChild(empty);
+    listEl.innerHTML = `<div class="hint">沒有結果。你可以試試：NVDA / Fed rate / earnings / CPI</div>`;
     return;
   }
 
   for (const a of articles) {
-    listEl.appendChild(articleCard(a));
+    // 沒 description 的就隱藏（要求）
+    const desc = (a.description || "").trim();
+    const url = a.url || "";
+    const favOn = url && isFav(url);
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const title = document.createElement("h3");
+    title.className = "title";
+    title.innerHTML = url
+      ? `<a href="${url}" target="_blank" rel="noreferrer">${escapeHtml(a.title || "(No title)")}</a>`
+      : escapeHtml(a.title || "(No title)");
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = fmtMeta(a);
+
+    card.appendChild(title);
+    card.appendChild(meta);
+
+    if (desc) {
+      const d = document.createElement("div");
+      d.className = "desc";
+      d.textContent = desc;
+      card.appendChild(d);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+
+    const favWrap = document.createElement("div");
+    favWrap.className = "fav";
+
+    const favBtn = document.createElement("button");
+    favBtn.className = favOn ? "on" : "";
+    favBtn.textContent = favOn ? "★ 已收藏" : "☆ 收藏";
+    favBtn.onclick = () => {
+      if (!url) return;
+      toggleFav(url);
+      renderList(sortArticles(dedupeByTitle(lastArticles), sortEl.value));
+    };
+
+    favWrap.appendChild(favBtn);
+    actions.appendChild(favWrap);
+
+    card.appendChild(actions);
+    listEl.appendChild(card);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+// ===== API =====
+async function fetchArticles(query, pageSize = 12) {
+  const url = `${API_BASE}/api/articles?q=${encodeURIComponent(query)}&pageSize=${pageSize}`;
+
+  const res = await fetch(url, { method: "GET" });
+  const data = await res.json();
+
+  if (!res.ok) {
+    const msg = data?.error || data?.message || `HTTP ${res.status}`;
+    throw new Error(msg);
   }
 
-  // 搜尋後自動捲到結果區
-  document.getElementById("resultTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+  // 兼容：你的 Worker 目前可能是 { status:"ok", articles:[...] } 或直接回 articles
+  const articles = data?.articles || [];
+  return articles;
 }
 
-function renderFocus(el, article) {
-  el.innerHTML = "";
-  if (!article) {
-    el.textContent = "目前找不到焦點新聞。";
-    return;
-  }
-  const card = articleCard(article, { showStar: true });
-  el.appendChild(card);
-}
+// ===== actions =====
+async function doSearch(query, { scroll = true } = {}) {
+  const keyword = (query || "").trim();
+  if (!keyword) return;
 
-function makeButtons(container, items, { prefix } = {}) {
-  container.innerHTML = "";
-  for (const it of items) {
-    const b = document.createElement("button");
-    b.textContent = it.label;
-    b.onclick = () => runSearch(it.q, { label: `${prefix || ""}${it.label}` });
-    container.appendChild(b);
-  }
-}
-
-function renderFavList() {
-  const values = Object.values(favs);
-  const deduped = dedupeByTitle(
-    values.map(v => ({
-      title: v.title,
-      url: v.url,
-      description: v.description,
-      publishedAt: v.publishedAt,
-      source: { name: v.sourceName }
-    }))
-  );
-  const sorted = sortArticles(deduped, sortEl.value);
-  renderList(sorted, {
-    title: "收藏清單",
-    subtitle: `共 ${sorted.length} 則（依 ${sortEl.value === "new" ? "最新→最舊" : "最舊→最新"} 排序）`
-  });
-}
-
-// -----------------------------
-// 主流程：搜尋
-// -----------------------------
-async function runSearch(query, opts = {}) {
-  const label = opts.label || query;
-
-  showFavOnly = false;
-  toggleFavEl.textContent = "收藏清單";
-
-  if (!query || !String(query).trim()) return;
-
-  setStatus("讀取中…");
+  showMsg("");
   setLoading(true);
 
   try {
-    const raw = await fetchArticles(query, 30);
-    const deduped = dedupeByTitle(raw);
-    const sorted = sortArticles(deduped, sortEl.value);
+    const raw = await fetchArticles(keyword, 18);
+    lastArticles = raw;
 
-    renderList(sorted, {
-      title: `搜尋結果：${label}`,
-      subtitle: `共 ${sorted.length} 則（已去重；無 description 已隱藏）`
-    });
+    const cleaned = dedupeByTitle(raw);
+    const sorted = sortArticles(cleaned, sortEl.value);
 
-    setStatus("完成");
+    renderList(sorted);
+
+    if (scroll) {
+      resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   } catch (e) {
+    showMsg(`搜尋失敗：${e.message}`);
     listEl.innerHTML = "";
-    const err = document.createElement("div");
-    err.className = "sub";
-    err.textContent = `讀取失敗：${e.message}`;
-    listEl.appendChild(err);
-    setStatus("失敗");
+    countEl.textContent = "0 則";
+    dedupEl.textContent = "去重：0";
   } finally {
     setLoading(false);
   }
 }
 
-// -----------------------------
-// 初始化：焦點新聞 + 快捷鍵 + 事件
-// -----------------------------
-async function initFocus() {
+async function loadFocus() {
+  focusStatus.textContent = "載入中…";
+  focusBox.innerHTML = "";
   try {
-    twFocusSub.textContent = "載入中…";
-    usFocusSub.textContent = "載入中…";
+    const raw = await fetchArticles(US_FOCUS_QUERY, 6);
+    const cleaned = sortArticles(dedupeByTitle(raw), "new").slice(0, 2);
 
-    const [tw, us] = await Promise.all([
-      fetchArticles(TW_FOCUS_QUERY, 10),
-      fetchArticles(US_FOCUS_QUERY, 10),
-    ]);
+    if (!cleaned.length) {
+      focusStatus.textContent = "無資料";
+      focusBox.innerHTML = `<div class="hint">目前沒有抓到焦點新聞。</div>`;
+      return;
+    }
 
-    const tw1 = sortArticles(dedupeByTitle(tw), "new")[0];
-    const us1 = sortArticles(dedupeByTitle(us), "new")[0];
+    focusStatus.textContent = "已更新";
+    for (const a of cleaned) {
+      const desc = (a.description || "").trim();
+      const url = a.url || "";
 
-    renderFocus(twFocusEl, tw1);
-    renderFocus(usFocusEl, us1);
+      const card = document.createElement("div");
+      card.className = "card";
 
-    twFocusSub.textContent = "最新 1 則";
-    usFocusSub.textContent = "最新 1 則";
+      const title = document.createElement("h3");
+      title.className = "title";
+      title.innerHTML = url
+        ? `<a href="${url}" target="_blank" rel="noreferrer">${escapeHtml(a.title || "(No title)")}</a>`
+        : escapeHtml(a.title || "(No title)");
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = fmtMeta(a);
+
+      card.appendChild(title);
+      card.appendChild(meta);
+
+      // 焦點區我也照你規則：沒 description 就不顯示
+      if (desc) {
+        const d = document.createElement("div");
+        d.className = "desc";
+        d.textContent = desc;
+        card.appendChild(d);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      if (url) {
+        const favBtn = document.createElement("button");
+        const favOn = isFav(url);
+        favBtn.className = favOn ? "on" : "";
+        favBtn.textContent = favOn ? "★ 已收藏" : "☆ 收藏";
+        favBtn.onclick = () => {
+          toggleFav(url);
+          loadFocus(); // 刷新焦點區收藏狀態
+        };
+        actions.appendChild(favBtn);
+      }
+
+      card.appendChild(actions);
+      focusBox.appendChild(card);
+    }
   } catch (e) {
-    twFocusEl.textContent = `載入失敗：${e.message}`;
-    usFocusEl.textContent = `載入失敗：${e.message}`;
-    twFocusSub.textContent = "";
-    usFocusSub.textContent = "";
+    focusStatus.textContent = "失敗";
+    focusBox.innerHTML = `<div class="error">焦點載入失敗：${escapeHtml(e.message)}</div>`;
   }
 }
 
-function wireEvents() {
-  goEl.onclick = () => runSearch(qEl.value.trim());
+function renderChips() {
+  // industries
+  industryChips.innerHTML = "";
+  for (const it of US_INDUSTRIES) {
+    const el = document.createElement("div");
+    el.className = "chip";
+    el.innerHTML = `<span>${escapeHtml(it.label)}</span>`;
+    el.onclick = () => {
+      qEl.value = it.label; // 給使用者視覺提示
+      doSearch(it.q);
+    };
+    industryChips.appendChild(el);
+  }
 
-  // Enter 鍵也能搜尋
-  qEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") runSearch(qEl.value.trim());
-  });
-
-  sortEl.addEventListener("change", () => {
-    if (showFavOnly) {
-      renderFavList();
-      return;
-    }
-    // 如果目前有結果，就直接用同一個關鍵字再跑一次（簡單可靠）
-    const current = qEl.value.trim();
-    if (current) runSearch(current);
-  });
-
-  toggleFavEl.onclick = () => {
-    showFavOnly = !showFavOnly;
-    if (showFavOnly) {
-      toggleFavEl.textContent = "回到搜尋";
-      renderFavList();
-      setStatus("收藏");
-      return;
-    }
-    toggleFavEl.textContent = "收藏清單";
-    const current = qEl.value.trim();
-    if (current) runSearch(current);
-    else {
-      listEl.innerHTML = "";
-      resultTitleEl.textContent = "搜尋結果";
-      resultSubEl.textContent = "";
-      setStatus("就緒");
-    }
-  };
+  // companies
+  companyChips.innerHTML = "";
+  for (const it of US_COMPANIES) {
+    const el = document.createElement("div");
+    el.className = "chip";
+    el.innerHTML = `<b>${escapeHtml(it.label)}</b><span>${escapeHtml(it.q.split(" OR ")[0])}</span>`;
+    el.onclick = () => {
+      qEl.value = it.label;
+      doSearch(it.q);
+    };
+    companyChips.appendChild(el);
+  }
 }
 
-function initButtons() {
-  makeButtons(twSectorsEl, TW_SECTORS, { prefix: "台股｜" });
-  makeButtons(usSectorsEl, US_SECTORS, { prefix: "美股｜" });
-  makeButtons(twCompaniesEl, TW_COMPANIES, { prefix: "台股｜" });
-  makeButtons(usCompaniesEl, US_COMPANIES, { prefix: "美股｜" });
+// ===== theme =====
+function getTheme() {
+  return localStorage.getItem(THEME_KEY) || "dark";
 }
+function setTheme(theme) {
+  document.body.setAttribute("data-theme", theme);
+  localStorage.setItem(THEME_KEY, theme);
+}
+themeBtn.onclick = () => {
+  const now = document.body.getAttribute("data-theme") || "dark";
+  setTheme(now === "dark" ? "light" : "dark");
+};
 
-(async function init() {
-  setStatus("就緒");
-  initButtons();
-  wireEvents();
-  await initFocus();
-})();
+// ===== events =====
+goEl.onclick = () => doSearch(qEl.value);
+
+qEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") doSearch(qEl.value);
+});
+
+sortEl.addEventListener("change", () => {
+  const cleaned = dedupeByTitle(lastArticles || []);
+  renderList(sortArticles(cleaned, sortEl.value));
+});
+
+clearEl.onclick = () => {
+  qEl.value = "";
+  showMsg("");
+  listEl.innerHTML = "";
+  countEl.textContent = "0 則";
+  dedupEl.textContent = "去重：0";
+};
+
+showFavBtn.onclick = () => {
+  const favs = loadFavs();
+  if (!favs.length) {
+    showMsg("你目前沒有收藏。");
+    listEl.innerHTML = "";
+    countEl.textContent = "0 則";
+    dedupEl.textContent = "去重：0";
+    resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+
+  // 收藏顯示：用網址當基準，盡量保留你之前抓到的文章內容；
+  // 如果 lastArticles 沒有，就用一個「最小卡片」呈現
+  showMsg("");
+  const minimal = favs.map((url) => ({
+    title: url,
+    url,
+    description: "",
+    publishedAt: "",
+    source: { name: "Saved" },
+  }));
+
+  lastArticles = minimal;
+  lastDedupRemoved = 0;
+  renderList(sortArticles(minimal, "new"));
+  resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+// ===== init =====
+setTheme(getTheme());
+renderChips();
+loadFocus();
+
+// 預設給一個你每天會用的初始查詢（可刪）
+doSearch("Nvidia OR Fed rate OR earnings", { scroll: false });
