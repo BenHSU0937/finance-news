@@ -3,21 +3,256 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>財經新聞搜尋</title>
+  <title>財經新聞儀表板</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 20px; }
-    input, button { padding: 8px; font-size: 16px; }
-    .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-top: 12px; }
-    .meta { color: #666; font-size: 12px; }
+    :root{
+      --bg:#0b1020;
+      --panel:#0f172a;
+      --muted:#94a3b8;
+      --text:#e5e7eb;
+      --border:rgba(148,163,184,.18);
+      --btn:#111b33;
+      --btn2:#162244;
+      --accent:#60a5fa;
+      --good:#34d399;
+      --warn:#fbbf24;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    a{ color: var(--accent); text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+    .wrap{ max-width:1100px; margin:24px auto; padding:0 16px; }
+    .top{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      position:sticky; top:0; z-index:10;
+      backdrop-filter: blur(6px);
+    }
+    h1{ font-size:26px; margin:0 12px 0 0; letter-spacing:.5px; }
+    .search{ display:flex; gap:8px; align-items:center; flex:1; min-width:280px; }
+    input[type="text"]{
+      width:100%;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:#0b122a;
+      color:var(--text);
+      outline:none;
+    }
+    select{
+      padding:10px 10px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:#0b122a;
+      color:var(--text);
+      outline:none;
+    }
+    button{
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:var(--btn);
+      color:var(--text);
+      cursor:pointer;
+    }
+    button:hover{ background:var(--btn2); }
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(15,23,42,.6);
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media (max-width: 880px){
+      .grid2{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+    }
+    .panel h2{
+      margin:0 0 10px 0;
+      font-size:16px;
+      color:#cbd5e1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .sub{ font-size:12px; color:var(--muted); }
+    .btnrow{
+      display:flex; flex-wrap:wrap; gap:8px;
+      margin-top:10px;
+    }
+    .btnrow button{
+      padding:8px 10px;
+      font-size:13px;
+      border-radius:999px;
+    }
+
+    .focus{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px;
+      background:rgba(2,6,23,.25);
+    }
+
+    .sectionTitle{
+      margin:18px 0 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .sectionTitle h3{
+      margin:0;
+      font-size:15px;
+      color:#cbd5e1;
+    }
+
+    .list{ display:flex; flex-direction:column; gap:12px; }
+    .card{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      background:rgba(2,6,23,.25);
+      position:relative;
+    }
+    .meta{ color:var(--muted); font-size:12px; margin-top:6px; }
+    .desc{ margin-top:10px; color:#dbeafe; opacity:.95; }
+    .actions{
+      position:absolute; top:10px; right:10px;
+      display:flex; gap:8px;
+    }
+    .iconbtn{
+      padding:6px 8px;
+      border-radius:10px;
+      font-size:13px;
+      background:rgba(17,27,51,.8);
+    }
+    .iconbtn.active{
+      border-color: rgba(52,211,153,.5);
+      box-shadow: 0 0 0 2px rgba(52,211,153,.15) inset;
+    }
+
+    .spinnerWrap{
+      display:none;
+      align-items:center;
+      gap:10px;
+      margin-top:10px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .spinner{
+      width:18px; height:18px;
+      border-radius:50%;
+      border:2px solid rgba(148,163,184,.35);
+      border-top-color: var(--accent);
+      animation: spin .9s linear infinite;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg);} }
+
+    .toast{
+      position:fixed;
+      right:14px; bottom:14px;
+      background:rgba(15,23,42,.95);
+      border:1px solid var(--border);
+      padding:10px 12px;
+      border-radius:12px;
+      color:var(--text);
+      font-size:13px;
+      display:none;
+      max-width:min(520px, calc(100vw - 28px));
+      z-index:999;
+    }
   </style>
 </head>
 <body>
-  <h1>財經新聞搜尋</h1>
+  <div class="wrap">
+    <div class="top">
+      <h1>財經新聞儀表板</h1>
 
-  <input id="q" placeholder="輸入公司或關鍵字，例如 TSMC" />
-  <button id="go">搜尋</button>
+      <div class="search">
+        <input id="q" type="text" placeholder="輸入公司 / 股票代號 / 關鍵字，例如 TSMC、NVDA、台股大盤" />
+        <button id="go">搜尋</button>
 
-  <div id="list"></div>
+        <select id="sort">
+          <option value="new">最新 → 最舊</option>
+          <option value="old">最舊 → 最新</option>
+        </select>
+
+        <button id="toggleFav">收藏清單</button>
+      </div>
+
+      <div class="pill" id="statusPill">就緒</div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>台股大盤焦點 <span class="sub" id="twFocusSub"></span></h2>
+        <div class="focus" id="twFocus">載入中…</div>
+
+        <div class="btnrow" id="twSectors"></div>
+
+        <div class="sectionTitle">
+          <h3>台股重要公司</h3>
+          <div class="sub">一鍵跳到該公司新聞</div>
+        </div>
+        <div class="btnrow" id="twCompanies"></div>
+      </div>
+
+      <div class="panel">
+        <h2>美股大盤焦點 <span class="sub" id="usFocusSub"></span></h2>
+        <div class="focus" id="usFocus">載入中…</div>
+
+        <div class="btnrow" id="usSectors"></div>
+
+        <div class="sectionTitle">
+          <h3>美股重要公司</h3>
+          <div class="sub">一鍵跳到該公司新聞</div>
+        </div>
+        <div class="btnrow" id="usCompanies"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px;">
+      <div class="sectionTitle">
+        <h3 id="resultTitle">搜尋結果</h3>
+        <div class="sub" id="resultSub"></div>
+      </div>
+
+      <div class="spinnerWrap" id="loading">
+        <div class="spinner"></div>
+        <div>讀取中…</div>
+      </div>
+
+      <div class="list" id="list"></div>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
 
   <script src="./app.js"></script>
 </body>
