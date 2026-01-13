@@ -1,3 +1,4 @@
+<!-- index.html（美股） -->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -73,16 +74,6 @@
       background:rgba(15,23,42,.6);
       color:var(--muted);
       font-size:13px;
-    }
-
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px;
-      margin-top:14px;
-    }
-    @media (max-width: 880px){
-      .grid2{ grid-template-columns: 1fr; }
     }
 
     .panel{
@@ -194,7 +185,7 @@
       <h1>財經新聞儀表板</h1>
 
       <div class="search">
-        <input id="q" type="text" placeholder="輸入公司 / 股票代號 / 關鍵字，例如 TSMC、NVDA、台股大盤" />
+        <input id="q" type="text" placeholder="輸入公司 / 股票代號 / 關鍵字，例如 NVDA、AAPL、S&P 500" />
         <button id="go">搜尋</button>
 
         <select id="sort">
@@ -208,32 +199,18 @@
       <div class="pill" id="statusPill">就緒</div>
     </div>
 
-    <div class="grid2">
-      <div class="panel">
-        <h2>台股大盤焦點 <span class="sub" id="twFocusSub"></span></h2>
-        <div class="focus" id="twFocus">載入中…</div>
+    <!-- 只留美股面板 -->
+    <div class="panel" style="margin-top:14px;">
+      <h2>美股大盤焦點 <span class="sub" id="usFocusSub"></span></h2>
+      <div class="focus" id="usFocus">載入中…</div>
 
-        <div class="btnrow" id="twSectors"></div>
+      <div class="btnrow" id="usSectors"></div>
 
-        <div class="sectionTitle">
-          <h3>台股重要公司</h3>
-          <div class="sub">一鍵跳到該公司新聞</div>
-        </div>
-        <div class="btnrow" id="twCompanies"></div>
+      <div class="sectionTitle">
+        <h3>美股重要公司</h3>
+        <div class="sub">一鍵跳到該公司新聞</div>
       </div>
-
-      <div class="panel">
-        <h2>美股大盤焦點 <span class="sub" id="usFocusSub"></span></h2>
-        <div class="focus" id="usFocus">載入中…</div>
-
-        <div class="btnrow" id="usSectors"></div>
-
-        <div class="sectionTitle">
-          <h3>美股重要公司</h3>
-          <div class="sub">一鍵跳到該公司新聞</div>
-        </div>
-        <div class="btnrow" id="usCompanies"></div>
-      </div>
+      <div class="btnrow" id="usCompanies"></div>
     </div>
 
     <div class="panel" style="margin-top:14px;">
@@ -257,3 +234,4 @@
   <script src="./app.js"></script>
 </body>
 </html>
+
