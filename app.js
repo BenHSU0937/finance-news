@@ -1,3 +1,4 @@
+// app.js（台股已移除，只留美股）
 // 你的 Cloudflare Worker 網址（不要結尾斜線）
 const API_BASE = "https://square-poetry-154f.benbenben0937267.workers.dev";
 
@@ -12,14 +13,10 @@ const loadingEl = document.getElementById("loading");
 const statusPill = document.getElementById("statusPill");
 const toastEl = document.getElementById("toast");
 
-const twFocusEl = document.getElementById("twFocus");
 const usFocusEl = document.getElementById("usFocus");
-const twFocusSub = document.getElementById("twFocusSub");
 const usFocusSub = document.getElementById("usFocusSub");
 
-const twSectorsEl = document.getElementById("twSectors");
 const usSectorsEl = document.getElementById("usSectors");
-const twCompaniesEl = document.getElementById("twCompanies");
 const usCompaniesEl = document.getElementById("usCompanies");
 
 const resultTitleEl = document.getElementById("resultTitle");
@@ -28,38 +25,17 @@ const toggleFavEl = document.getElementById("toggleFav");
 
 // -----------------------------
 // 設定：焦點 / 產業快捷 / 公司
-// 你之後想換字或補公司，改這裡就好
 // -----------------------------
-const TW_FOCUS_QUERY = "台股 大盤 加權指數 焦點";
 const US_FOCUS_QUERY = "S&P 500 Nasdaq Dow Jones stock market focus";
 
-const TW_SECTORS = [
-  { label: "科技業", q: "台股 科技 半導體 AI 電子" },
-  { label: "傳產(製造)", q: "台股 製造 傳產 鋼鐵 航運 化工" },
-  { label: "金融業", q: "台股 金融 銀行 壽險 證券" },
-  { label: "生技醫療", q: "台股 生技 醫療 新藥" },
-  { label: "內需/政策", q: "台股 內需 政策 公共建設 觀光 零售" },
-];
-
 const US_SECTORS = [
-  { label: "科技", q: "US stocks technology AI semiconductors" },
-  { label: "通訊", q: "US stocks communication services telecom" },
-  { label: "消費", q: "US stocks consumer discretionary retail" },
-  { label: "金融", q: "US stocks financials banks" },
-  { label: "醫療保健", q: "US stocks healthcare pharma biotech" },
+  { label: "科技業", q: "US stocks technology AI semiconductors" },
+  { label: "通訊業", q: "US stocks communication services telecom" },
+  { label: "消費業", q: "US stocks consumer discretionary retail" },
+  { label: "金融業", q: "US stocks financials banks" },
+  { label: "醫療保健業", q: "US stocks healthcare pharma biotech" },
   { label: "工業/國防/航太", q: "US stocks industrial defense aerospace" },
   { label: "能源/原物料", q: "US stocks energy materials oil gas commodities" },
-];
-
-const TW_COMPANIES = [
-  { label: "台積電", q: "TSMC 台積電" },
-  { label: "聯發科", q: "MediaTek 聯發科" },
-  { label: "鴻海", q: "Foxconn 鴻海" },
-  { label: "台達電", q: "Delta Electronics 台達電" },
-  { label: "中華電", q: "Chunghwa Telecom 中華電信" },
-  { label: "國泰金", q: "Cathay Financial 國泰金" },
-  { label: "富邦金", q: "Fubon Financial 富邦金" },
-  { label: "長榮", q: "Evergreen Marine 長榮 海運" },
 ];
 
 const US_COMPANIES = [
@@ -352,26 +328,15 @@ async function runSearch(query, opts = {}) {
 // -----------------------------
 async function initFocus() {
   try {
-    twFocusSub.textContent = "載入中…";
     usFocusSub.textContent = "載入中…";
 
-    const [tw, us] = await Promise.all([
-      fetchArticles(TW_FOCUS_QUERY, 10),
-      fetchArticles(US_FOCUS_QUERY, 10),
-    ]);
-
-    const tw1 = sortArticles(dedupeByTitle(tw), "new")[0];
+    const us = await fetchArticles(US_FOCUS_QUERY, 10);
     const us1 = sortArticles(dedupeByTitle(us), "new")[0];
 
-    renderFocus(twFocusEl, tw1);
     renderFocus(usFocusEl, us1);
-
-    twFocusSub.textContent = "最新 1 則";
     usFocusSub.textContent = "最新 1 則";
   } catch (e) {
-    twFocusEl.textContent = `載入失敗：${e.message}`;
     usFocusEl.textContent = `載入失敗：${e.message}`;
-    twFocusSub.textContent = "";
     usFocusSub.textContent = "";
   }
 }
@@ -389,7 +354,6 @@ function wireEvents() {
       renderFavList();
       return;
     }
-    // 如果目前有結果，就直接用同一個關鍵字再跑一次（簡單可靠）
     const current = qEl.value.trim();
     if (current) runSearch(current);
   });
@@ -415,9 +379,7 @@ function wireEvents() {
 }
 
 function initButtons() {
-  makeButtons(twSectorsEl, TW_SECTORS, { prefix: "台股｜" });
   makeButtons(usSectorsEl, US_SECTORS, { prefix: "美股｜" });
-  makeButtons(twCompaniesEl, TW_COMPANIES, { prefix: "台股｜" });
   makeButtons(usCompaniesEl, US_COMPANIES, { prefix: "美股｜" });
 }
 
